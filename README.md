@@ -261,5 +261,5 @@ and improve code health, while paying the maintainers of the exact dependencies 
 [Learn more.](https://tidelift.com/subscription/pkg/maven-org.instancio.instancio-core?utm_source=maven-org.instancio.instancio-core&utm_medium=referral&utm_campaign=enterprise&utm_term=repo)
 
 ## Contributors
-İrem Kılıç 64220042 (Ankara Medipol Üniversitesi)
+İrem Kılıç 64220042 (Ankara Medipol Üniversitesi)\n
 Selin İşci 64230041 
