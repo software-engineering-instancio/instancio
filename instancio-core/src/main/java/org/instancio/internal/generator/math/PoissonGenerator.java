@@ -30,13 +30,34 @@ public class PoissonGenerator implements Generator<Integer> {
 
     private final GeneratorContext context;
 
+    // Default variable for the algorithm (Can be fetched from context later)
+    private double mean = 5.0;
+
     public PoissonGenerator(final GeneratorContext context) {
         this.context = context;
     }
 
     @Override
-    public Integer generate(final Random random) {
-        // TODO: Implement actual Poisson distribution logic using context.settings()
-        return 0;
+    public Integer generate(Random random) {
+        // 1. Validate parameters
+        if (this.mean <= 0) {
+            throw new IllegalArgumentException("Mean (lambda) must be strictly positive");
+        }
+
+        // 2. Initial values for Knuth's algorithm
+        double limit = Math.exp(-this.mean);
+        double p = 1.0;
+        int k = 0;
+
+        // 3. Loop to generate random numbers until reaching the target distribution
+        do {
+            k++;
+            // Instancio uses doubleRange(min, max) instead of nextDouble()
+            double u = random.doubleRange(0.0, 1.0);
+            p *= u;
+        } while (p > limit);
+
+        // 4. Return the calculated Poisson value
+        return k - 1;
     }
 }
