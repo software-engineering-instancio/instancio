@@ -1,5 +1,3 @@
-package org.instancio.internal.generator.math;
-
 /*
  * Copyright 2022-2026 the original author or authors.
  *
@@ -15,6 +13,7 @@ package org.instancio.internal.generator.math;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.instancio.internal.generator.math;
 
 import org.instancio.Random;
 import org.instancio.generator.Generator;
@@ -31,13 +30,33 @@ public class BinomialGenerator implements Generator<Integer> {
 
     private final GeneratorContext context;
 
+    // Default variables for the algorithm (Can be fetched from context later)
+    private int trials = 10;
+    private double probability = 0.5;
+
     public BinomialGenerator(final GeneratorContext context) {
         this.context = context;
     }
 
     @Override
-    public Integer generate(final Random random) {
-        // TODO: Implement actual Binomial distribution logic using context.settings()
-        return 0;
+    public Integer generate(Random random) {
+        // 1. Validate parameters to ensure they are within mathematically acceptable ranges
+        if (this.trials < 0 || this.probability < 0.0 || this.probability > 1.0) {
+            throw new IllegalArgumentException("Trials must be >= 0 and probability must be between 0.0 and 1.0");
+        }
+
+        int successes = 0;
+
+        // 2. Iterate for the total number of trials
+        for (int i = 0; i < this.trials; i++) {
+            // 3. Count as a success if the generated random number is less than the probability
+            // Instancio uses doubleRange(min, max) instead of nextDouble()
+            if (random.doubleRange(0.0, 1.0) < this.probability) {
+                successes++;
+            }
+        }
+
+        // 4. Return the total number of successful trials
+        return successes;
     }
 }
