@@ -29,13 +29,14 @@ import org.instancio.settings.Keys;
 public class BinomialGenerator implements Generator<Integer> {
 
     private final GeneratorContext context;
-
-    // Default variables for the algorithm (Can be fetched from context later)
-    private int trials = 10;
-    private double probability = 0.5;
+    private final int trials;
+    private final double probability;
 
     public BinomialGenerator(final GeneratorContext context) {
         this.context = context;
+        // getSettings() yerine Instancio'nun güncel metodu olan settings() kullanıyoruz
+        this.trials = context.settings().get(Keys.BINOMIAL_TRIALS);
+        this.probability = context.settings().get(Keys.BINOMIAL_PROBABILITY);
     }
 
     @Override
@@ -50,7 +51,6 @@ public class BinomialGenerator implements Generator<Integer> {
         // 2. Iterate for the total number of trials
         for (int i = 0; i < this.trials; i++) {
             // 3. Count as a success if the generated random number is less than the probability
-            // Instancio uses doubleRange(min, max) instead of nextDouble()
             if (random.doubleRange(0.0, 1.0) < this.probability) {
                 successes++;
             }
