@@ -26,6 +26,7 @@ import org.instancio.internal.nodes.InternalNode;
 import org.instancio.internal.nodes.NodeKind;
 import org.instancio.internal.util.ReflectionUtils;
 import org.instancio.internal.util.Sonar;
+import org.instancio.settings.Keys;
 import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
@@ -53,8 +54,13 @@ public class GeneratorResolver {
     @SuppressWarnings({"rawtypes", "unchecked"})
     public Generator<?> get(final InternalNode node) {
         final Class<?> klass = node.getTargetClass();
+        Generator<?> gaussianGenerator = interceptGaussian(klass);
+        if (gaussianGenerator != null) {
+            return gaussianGenerator;
+        }
 
         Generator<?> generator = getBuiltInGenerator(klass);
+        
 
         if (generator == null) {
             if (klass.isArray()) {
@@ -161,5 +167,48 @@ public class GeneratorResolver {
 
         final Class<?> generatorClass = ReflectionUtils.loadRequiredClass(generatorClassName);
         return instantiateInternalGenerator(generatorClass, context);
+    }
+    /**
+     * Intercepts numeric generation requests and routes them to the Gaussian logic if the Gaussian configuration is present in the settings.
+     */
+    @Nullable
+    private Generator<?> interceptGaussian(final Class<?> targetClass) {
+        final boolean isNumeric = Number.class.isAssignableFrom(targetClass)
+                || targetClass == double.class || targetClass == float.class
+                || targetClass == int.class || targetClass == long.class
+                || targetClass == short.class || targetClass == byte.class;
+
+        if (isNumeric) {
+            final Double mean = context.settings().get(Keys.GAUSSIAN_MEAN);
+            
+            if (mean != null) {
+                return random -> {
+                    final double sd = context.settings().get(Keys.GAUSSIAN_SD);
+                    final double min = context.settings().get(Keys.GAUSSIAN_MIN);
+                    final double max = context.settings().get(Keys.GAUSSIAN_MAX);
+
+                    final double value = ((org.instancio.support.DefaultRandom) random)
+                            .nextTruncatedGaussian(mean, sd, min, max);
+
+                    if (targetClass == int.class || targetClass == Integer.class) {
+                        return (int) value;
+                    }
+                    if (targetClass == long.class || targetClass == Long.class) {
+                        return (long) value;
+                    }
+                    if (targetClass == float.class || targetClass == Float.class) {
+                        return (float) value;
+                    }
+                    if (targetClass == short.class || targetClass == Short.class) {
+                        return (short) value;
+                    }
+                    if (targetClass == byte.class || targetClass == Byte.class) {
+                        return (byte) value;
+                    }
+                    return value;
+                };
+            }
+        }
+        return null;
     }
 }
