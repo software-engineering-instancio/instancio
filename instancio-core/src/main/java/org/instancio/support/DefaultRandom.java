@@ -224,4 +224,34 @@ public class DefaultRandom implements Random {
 
         return iter.next();
     }
+    /**
+     * Generates a random value following a normal (Gaussian) distribution,bounded by the specified minimum and maximum values using Rejection Sampling.
+     * Includes a fail-safe mechanism to prevent infinite loops in extreme edge cases.
+     */
+    public double nextTruncatedGaussian(double mean, double sd, double min, double max) {
+        if (sd <= 0.0) {
+            throw new IllegalArgumentException("Standard deviation must be strictly positive");
+        }
+        
+        if (min >= max) {
+            throw new IllegalArgumentException("Minimum boundary must be less than maximum boundary");
+        }
+
+        double generatedValue;
+        int attempts = 0;
+        int maxAttempts = 10000;
+
+        do {
+            generatedValue = mean + (this.random.nextGaussian() * sd);
+            attempts++;
+            
+            if (attempts > maxAttempts) {
+                return mean;
+            }
+            
+        } while (generatedValue < min || generatedValue > max);
+
+        return generatedValue;
+    }
+
 }
