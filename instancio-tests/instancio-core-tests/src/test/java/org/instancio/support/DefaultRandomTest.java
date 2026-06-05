@@ -466,4 +466,67 @@ class DefaultRandomTest {
                     .hasMessage(expectedErrorMsg);
         }
     }
+    @Nested
+    class GaussianTest {
+
+        @Test
+        void gaussianShouldRemainStrictlyWithinBounds() {
+            final double mean = 30.0;
+            final double sd = 5.0;
+            final double min = 10.0;
+            final double max = 50.0;
+
+            DefaultRandom defaultRandom = (DefaultRandom) random;
+
+            for (int i = 0; i < SAMPLE_SIZE; i++) {
+                final double value = defaultRandom.nextTruncatedGaussian(mean, sd, min, max);
+                results.add(value);
+
+                assertThat(value)
+                        .as("Gaussian generated value should strictly be within bounds")
+                        .isBetween(min, max);
+            }
+
+            assertThat(results)
+                    .as("Gaussian should generate a wide variety of numbers within the range")
+                    .hasSizeGreaterThan(SAMPLE_SIZE * 99 / 100);
+        }
+
+        @Test
+        void gaussianWithExtremelyNarrowBounds() {
+            final double mean = 100.0;
+            final double sd = 10.0;
+            final double min = 99.9;
+            final double max = 100.0;
+
+            DefaultRandom defaultRandom = (DefaultRandom) random;
+
+            for (int i = 0; i < SAMPLE_SIZE; i++) {
+                final double value = defaultRandom.nextTruncatedGaussian(mean, sd, min, max);
+                
+                assertThat(value)
+                        .as("Gaussian generated value should not break when bounds are extremely tight")
+                        .isBetween(min, max);
+            }
+        }
+
+        @Test
+        void shouldThrowExceptionWhenStandardDeviationIsInvalid() {
+            DefaultRandom defaultRandom = (DefaultRandom) random;
+            assertThatThrownBy(() -> defaultRandom.nextTruncatedGaussian(0.0, 0.0, -10.0, 10.0))
+                    .isExactlyInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Standard deviation must be strictly positive");
+        }
+
+        @Test
+        void shouldThrowExceptionWhenBoundsAreInvalid() {
+            DefaultRandom defaultRandom = (DefaultRandom) random;
+            assertThatThrownBy(() -> defaultRandom.nextTruncatedGaussian(0.0, 1.0, 50.0, 10.0))
+                    .isExactlyInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Minimum boundary must be less than maximum boundary");
+        }
+
+
+    }
+    
 }
