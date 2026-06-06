@@ -127,6 +127,37 @@ public class GeneratorResolver {
                 subtypeSpec.subtype(subtype);
             }
         }
+       // Outlier Injection Logic for Numeric types
+        if (generator != null && isNumericType(targetClass)) {
+            final Generator<?> originalGen = generator;
+            return new Generator<Number>() {
+                @Override
+                public Number generate(org.instancio.Random random) {
+                    Number baseValue = (Number) originalGen.generate(random);
+
+                    double prob = ((InternalGeneratorContext) context).getOutlierProbability();
+                    if (prob > 0.0 && random.doubleRange(0.0, 1.0) <= prob) {
+                        double severity = ((InternalGeneratorContext) context).getOutlierSeverity();
+                        // Randomly decide upper or lower bound anomaly
+                        double multiplier = random.trueOrFalse() ? severity : -severity;
+                        double outlierValue = baseValue.doubleValue() * multiplier;
+                        
+                        // Create an artificial spike if the original value was 0
+                        if (outlierValue == 0) {
+                            outlierValue = multiplier * 100;
+                        }
+                        
+                        return castToOriginalNumericType(outlierValue, targetClass);
+                    }
+                    return baseValue;
+                }
+
+                @Override
+                public org.instancio.generator.Hints hints() {
+                    return java.util.Objects.requireNonNull(originalGen.hints()); 
+                }
+            };
+        }
         return generator;
     }
 
@@ -161,5 +192,20 @@ public class GeneratorResolver {
 
         final Class<?> generatorClass = ReflectionUtils.loadRequiredClass(generatorClassName);
         return instantiateInternalGenerator(generatorClass, context);
+    }
+    private boolean isNumericType(Class<?> targetClass) {
+        return Number.class.isAssignableFrom(targetClass) || 
+               targetClass == int.class || targetClass == long.class || 
+               targetClass == double.class || targetClass == float.class || 
+               targetClass == short.class || targetClass == byte.class;
+    }
+
+    private Number castToOriginalNumericType(double value, Class<?> targetClass) {
+        if (targetClass == Integer.class || targetClass == int.class) return (int) value;
+        if (targetClass == Long.class || targetClass == long.class) return (long) value;
+        if (targetClass == Float.class || targetClass == float.class) return (float) value;
+        if (targetClass == Short.class || targetClass == short.class) return (short) value;
+        if (targetClass == Byte.class || targetClass == byte.class) return (byte) value;
+        return value;
     }
 }
