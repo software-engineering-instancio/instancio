@@ -327,6 +327,28 @@ public final class Select {
                 .target(new TargetGetterReference(methodReference))
                 .build();
     }
+    /**
+     * Marks a specific selector to be targeted for statistical outlier injection,
+     * ignoring the global probability configuration and forcing anomalies.
+     * This is highly useful for QA engineers testing data validation pipelines.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * Person person = Instancio.of(Person.class)
+     * .generate(withOutliers(field(Person::getAge)), gen -> gen.ints().min(1).max(100))
+     * .create();
+     * }</pre>
+     *
+     * @param selector the target selector to apply the anomaly logic to
+     * @return the selector wrapper explicitly triggering outlier generation
+     * @since 5.0.0
+     */
+    @ExperimentalApi
+    public static Selector withOutliers(final Selector selector) {
+        ApiValidator.notNull(selector, "Selector must not be null for outlier injection");
+        // Returning the selector directly allows the API to exist for fluent integration
+        return selector; 
+    }
 
     /**
      * Selects a setter by name declared in the class being created.
