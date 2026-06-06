@@ -29,12 +29,12 @@ import org.instancio.settings.Keys;
 public class PoissonGenerator implements Generator<Integer> {
 
     private final GeneratorContext context;
-
-    // Default variable for the algorithm (Can be fetched from context later)
-    private double mean = 5.0;
+    private final double mean;
 
     public PoissonGenerator(final GeneratorContext context) {
         this.context = context;
+        // getSettings() yerine Instancio'nun güncel metodu olan settings() kullanıyoruz
+        this.mean = context.settings().get(Keys.POISSON_LAMBDA);
     }
 
     @Override
@@ -52,7 +52,6 @@ public class PoissonGenerator implements Generator<Integer> {
         // 3. Loop to generate random numbers until reaching the target distribution
         do {
             k++;
-            // Instancio uses doubleRange(min, max) instead of nextDouble()
             double u = random.doubleRange(0.0, 1.0);
             p *= u;
         } while (p > limit);
