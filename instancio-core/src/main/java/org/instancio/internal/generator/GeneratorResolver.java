@@ -26,6 +26,7 @@ import org.instancio.internal.nodes.InternalNode;
 import org.instancio.internal.nodes.NodeKind;
 import org.instancio.internal.util.ReflectionUtils;
 import org.instancio.internal.util.Sonar;
+import org.instancio.settings.Keys;
 import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
@@ -53,8 +54,13 @@ public class GeneratorResolver {
     @SuppressWarnings({"rawtypes", "unchecked"})
     public Generator<?> get(final InternalNode node) {
         final Class<?> klass = node.getTargetClass();
+        Generator<?> gaussianGenerator = interceptGaussian(klass);
+        if (gaussianGenerator != null) {
+            return gaussianGenerator;
+        }
 
         Generator<?> generator = getBuiltInGenerator(klass);
+        
 
         if (generator == null) {
             if (klass.isArray()) {
@@ -207,5 +213,62 @@ public class GeneratorResolver {
         if (targetClass == Short.class || targetClass == short.class) return (short) value;
         if (targetClass == Byte.class || targetClass == byte.class) return (byte) value;
         return value;
+    }
+    /**
+     * Intercepts numeric generation requests and routes them to the Gaussian logic if the Gaussian configuration is present in the settings.
+     */
+    @Nullable
+    private Generator<?> interceptGaussian(final Class<?> targetClass) {
+        // Restrict Gaussian generation to explicitly supported primitive and wrapper numeric types.
+        // This acts as a strict shield against unsupported types to prevent ClassCastException downstream.
+        
+        final boolean isSupportedNumeric = targetClass == double.class || targetClass == Double.class
+                || targetClass == float.class || targetClass == Float.class
+                || targetClass == int.class || targetClass == Integer.class
+                || targetClass == long.class || targetClass == Long.class
+                || targetClass == short.class || targetClass == Short.class
+                || targetClass == byte.class || targetClass == Byte.class;
+
+        if (isSupportedNumeric && context instanceof InternalGeneratorContext internalContext) {
+            // Proceed only if the user has explicitly enabled the feature and provided logical boundaries
+            if (internalContext.hasValidGaussianConfiguration()) {
+                
+                final double mean = internalContext.getGaussianMean();
+                final double sd = internalContext.getGaussianSd();
+                final double min = context.settings().get(Keys.GAUSSIAN_MIN);
+                final double max = context.settings().get(Keys.GAUSSIAN_MAX);
+
+                return new Generator<Object>() {
+                    @Override
+                    public Object generate(org.instancio.Random random) {
+                        
+                 
+                        if (!(random instanceof org.instancio.support.DefaultRandom defaultRandom)) {
+                            throw new IllegalStateException("Gaussian generation requires DefaultRandom implementation");
+                        }
+
+                       
+                        final double value = defaultRandom.nextTruncatedGaussian(mean, sd, min, max);
+
+                        // Safely cast the resulting double to the exact requested target class
+                        if (targetClass == int.class || targetClass == Integer.class) return (int) value;
+                        if (targetClass == long.class || targetClass == Long.class) return (long) value;
+                        if (targetClass == float.class || targetClass == Float.class) return (float) value;
+                        if (targetClass == short.class || targetClass == Short.class) return (short) value;
+                        if (targetClass == byte.class || targetClass == Byte.class) return (byte) value;
+                        
+                        return value; 
+                    }
+
+                    @Override
+                    public org.instancio.generator.Hints hints() {
+                        // Provide an empty hints object to satisfy Instancio's internal engine requirements and prevent NullPointerException during the generation pipeline.
+                        return org.instancio.generator.Hints.builder().build();
+                    }
+                };
+            }
+        }
+
+        return null;
     }
 }

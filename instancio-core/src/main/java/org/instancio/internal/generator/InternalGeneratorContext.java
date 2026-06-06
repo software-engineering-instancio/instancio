@@ -49,4 +49,46 @@ public record InternalGeneratorContext(Settings settings, Random random)
         }
         return 10.0;
     }
+    /**
+     * Safely retrieves the Gaussian mean from the settings.
+     * Defaults to 0.0 if not explicitly configured by the user.
+     *
+     * @return the configured or default mean
+     */
+    public double getGaussianMean() {
+        Double mean = settings().get(Keys.GAUSSIAN_MEAN);
+        return mean != null ? mean : 0.0;
+    }
+
+    /**
+     * Safely retrieves the Gaussian standard deviation from the settings.
+     * Defaults to 1.0 if not configured or if an invalid negative value is provided.
+     *
+     * @return the configured or default standard deviation
+     */
+    public double getGaussianSd() {
+        Double sd = settings().get(Keys.GAUSSIAN_SD);
+        return (sd != null && sd > 0.0) ? sd : 1.0;
+    }
+
+    /**
+     * Validates the Gaussian distribution boundary settings safely.
+     * This helper method ensures that any generator requesting these parameters
+     * receives mathematically valid boundaries, preventing runtime exceptions.
+     *
+     * @return true if Gaussian generation is enabled and boundaries are valid
+     */
+    public boolean hasValidGaussianConfiguration() {
+        final Boolean isEnabled = settings().get(Keys.GAUSSIAN_ENABLED);
+        if (!Boolean.TRUE.equals(isEnabled)) {
+            return false;
+        }
+
+        final Double min = settings().get(Keys.GAUSSIAN_MIN);
+        final Double max = settings().get(Keys.GAUSSIAN_MAX);
+
+        // Ensure boundaries are provided and logically correct (min < max)
+        return min != null && max != null && min < max;
+    }
+
 }
